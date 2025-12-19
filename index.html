@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Data Analyzer & Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        #search-input {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0 20px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer; /* For future sorting features */
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        #results-count {
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Staff Data Search Engine</h1>
+    <input type="text" id="search-input" onkeyup="searchStaff()" placeholder="Search by Name, Email, Department Code, or Title...">
+    
+    <div id="results-count"></div>
+    <div id="data-container"></div>
+
+    <script>
+        // 1. EMBED THE FULL STAFF DATA HERE (CSV FORMAT)
+        const csvData = `ID,Email,Dep_Code,Full_Name_Eng,Full_Name_Krd,Scientific_Title
+468,403238296004@soran.edu.iq,SOU701,KHALAT FADHIL MOHAMMED,خەڵات فاضل عبداللە,No Title
+408,ababakr.rasul@soran.edu.iq,SOU305,Ababakr Ibrahim Rasul,عبابکر ابرهیم رسول,Lecturer
+226,abbas.manshad@soran.edu.iq,SOU200,Abbas Khaksar Manshad,عباس عطاءالە خاکسار منشاد,Professor
+113,abdulfatah.fatah@soran.edu.iq,SOU508,ABDULFATAH HASAN ABDULFATAH,عبدالفتاح حسن فتاح قادر,Lecturer
+180,abdulkhalq.othman@soran.edu.iq,SOU510,ABDULKHALQ ABDULLAH OTHMAN,عبدالخالق عبداللە عثمان عبدالرحمن,Lecturer
+11,abdullah.awla@soran.edu.iq,SOU603,ABDULLAH QADIR AWLA,عبداللە قادر عولا,Lecturer
+127,abdullah.younus@soran.edu.iq,SOU502,ABDULLAH BIYRAM YOUNUS,عبداللە بیرم یونس احمد,Assistant Professor
+85,abdulmalek.hamadamin@soran.edu.iq,SOU606,ABDULMALEK OSMAN HAMADAMEEN,عبدالملک عثمان حمدامین سلیمان,Assistant Professor
+362,abdulqadeer.ahmed@soran.edu.iq,SOU303,Abdulqadeer Ibrahim Ahmed,عبدالقدیر ابراهیم احمد ابراهیم,Assistant Lecturer
+242,abdulqadir.bayz@soran.edu.iq,SOU201,Abdulqadir Bayz Hamad Amin,عبدالقادر بایز حمدامین سمایل,Lecturer
+339,abdulrahman.darwesh@soran.edu.iq,SOU402,ABDULRAHMAN KAREEM DARWESH,عبدالرحمن کریم دەرویش محمود,Assistant Professor
+450,abdulrahman.othman@soran.edu.iq,SOU503,ABDULRAHMAN JALAL OTHMAN,عبدالرحمن جلال عثمان,Lecturer
+382,abdulrazaq.mikail@soran.edu.iq,SOU301,Abdulrazaq Qasim Mikail,عبدالرزاق قاسم میكائیل تمر,Assistant Lecturer
+287,abdulsamad.saeed@soran.edu.iq,SOU401,abdulsamad mohammed saeed,عبدالصمد محمد سعید لاس,Lecturer
+476,abdulsameea.taha@soran.edu.iq,SOU601,abdulsameea majeed taha,عبدالسميع مجيد طه,Assistant Lecturer
+54,abubaker.hamad@gsci.soran.edu.iq,SOU601,ABUBAKER HASSAN HAMAD,ابوبکر حسن حمد سعید,Assistant Professor
+86,abubakir.dewana@soran.edu.iq,SOU606,ABUBAKIR DEWANA HAMAD HASAN,ابوبکر دیوانە حمد حسن رسول,Assistant Professor
+386,adris.shlimon@soran.edu.iq,SOU301,Adris Georgis Shlimon,ادریس گورگیس شلیمۆن,Assistant Lecturer
+199,ahmed.ahmed@soran.edu.iq,SOU510,Ahmed Abdulraman Ahmed,احمد عبدالرحمن احمد,Assistant Lecturer
+70,ahmed.aziz@soran.edu.iq,SOU605,Ahmed Jabar Aziz,احمد جبار میرعزیز احمد,Assistant Lecturer
+355,akam.mustafa@soran.edu.iq,SOU302,Akam Jasim Mustafa,ئاكام جاسم مصطفی,Lecturer
+244,ako.daraei@soran.edu.iq,SOU201,Ako Abdollah Daraei,ئاکۆ عبداللە دارای,Lecturer
+44,alan.kareem@soran.edu.iq,SOU604,ALAN PSHTIWAN KAREEM,ئالان پشتیوان كریم مصطفی,Lecturer
+253,ali.alibag@soran.edu.iq,SOU204,Ali Hosin Alibag,علی حسین علی بەگ,Assistant Lecturer
+206,ali.aziz@soran.edu.iq,SOU503,ALI YUSUF AZIZ,علی یوسف عزیز حمد,Lecturer
+45,ali.osman@soran.edu.iq,SOU604,Ali Hamad Othman,علی حمد عثمان رسول,Assistant Lecturer
+99,amanj.hammadamin@soran.edu.iq,SOU511,AMANJ AHMED HAMAD AMIN,امانج احمد حمدامین,Professor
+181,Amanj.mustafa@soran.edu.iq,SOU510,AMANJ AHMAD MUSTAFA,ئامانج احمد مصطفی,Assistant Professor
+346,amin.osman@soran.edu.iq,SOU304,AMIN MAHAMAD OSMAN,امین محمد عثمان,Assistant Lecturer
+129,amir.awla@soran.edu.iq,SOU502,AMIR RAFIQ AWLLA,امیر رفیق عولا محمود,Professor
+128,amir.hamadamin@ara.soran.edu.iq,SOU502,AMIR AHMED HMADAMIN,امیر احمد حمدامین,Lecturer
+265,amir.hasoo@soran.edu.iq,SOU404,Amir khaleel hassoo,امیر خلیل حسۆ احمد,Assistant Lecturer
+225,amira.naaby@soran.edu.iq,SOU503,AMEERAH MAMAR NABEE,امیرە مامر نبی,Assistant Lecturer
+55,amjad.jumaah@soran.edu.iq,SOU601,AMJAD AHMED JUMAAH,امجد احمد جمعە ولی,Assistant Lecturer
+12,Ammar.Hussien@soran.edu.iq,SOU603,AMMAR JAWHAR HUSSIEN,عمار جوهر حسێن,Lecturer
+130,anas.kareem@soran.edu.iq,SOU502,ANAS AZEEZ KAREEM,انس عزیز كریم,Assistant Lecturer
+467,aok036@chem.soran.edu.iq,SOU701,ASMAA OMAR KAMLA,اسما عمر کاملا,No Title
+68,ara.hamadamin@soran.edu.iq,SOU601,ARA JALAL HAMAD AMEEN,ئارا جلال حمدامین احمد,Assistant Lecturer
+82,aram.abdulkareem@soran.edu.iq,SOU602,ARAM ABDULHAKEEM ABDULKAREEM,ارام عبدالحكیم عبدالكریم,Assistant Lecturer
+444,ararat.ali@hist.soran.edu.iq,SOU510,ARARAT AHMED ALI,ارارات احمد علی عولا,Lecturer
+182,ararat.ali@soran.edu.iq,SOU510,ARARAT AHMED ALI,ارارات احمد علی عولا,Lecturer
+26,Ardalan.ahmed@soran.edu.iq,SOU603,Ardalan Hussen Ahmed,اردلان حسین احمدرەق حسین,Assistant Lecturer
+426,ardalan.nabi@soran.edu.iq,SOU302,Ardalan nabi Ali,ئەردەلان علی نبی,Lecturer
+247,aref.ghaderi@soran.edu.iq,SOU203,Aref Lotfollah Ghaderi,عارف لطف الە قادری,No Title
+246,arkan.hadi@soran.edu.iq,SOU203,Arkan Jasim Hadi,ارکان جاسم هادی,Professor
+251,arsalan.mirza@soran.edu.iq,SOU204,Arsalan Rahman Mirza,ارسلان رحمان میرزا حدو,Assistant Lecturer
+409,aryan.abdulqader@soran.edu.iq,SOU305,Aryan Fraidoon Abdulqader,ئاریان فریدون عبدالقادر,Assistant Lecturer
+240,aryanfar.abd@soran.edu.iq,SOU701,Aryanfar Haji Mala Abd,ئاریانفر حاجی ملا عبد,Lecturer
+347,Asaad.jund@soran.edu.iq,SOU304,ASAAD ABOZEID JUND,اسعد ابوزید جند,Lecturer
+387,Aveen.gerdy@soran.edu.iq,SOU301,Aveen Rustam Khdhr Abbas,ئەڤین رۆستم خضر,Lecturer
+289,Awat.jaafar@soran.edu.iq,SOU401,AWAT MUDHAFAR jAAFAR,ئاوات مظفر جعفر کۆخا رسول,Lecturer
+361,awaz.abdullah@soran.edu.iq,SOU302,Awaz Faruq Abdullah,ئاواز فاروق عبداللە,Assistant Lecturer
+124,aween.jubraeel@psy.soran.edu.iq,SOU508,AWEEN SALMAN JUBRAEEL,ئەوین سلمان جبرائیل,Assistant Lecturer
+363,ayad.faqi@soran.edu.iq,SOU303,Ayad Nuri Faqi,ایاد نوری فقی,Assistant Professor
+97,ayoob.malko@soran.edu.iq,SOU606,Ayub Abas Malko,ایوب عباس ملكو,Assistant Lecturer
+166,ayub.karimi@soc.soran.edu.iq,SOU509,AYUB QASM KARIMI,ایوب قاسم کریمی,Professor
+100,azad.hasan@soran.edu.iq,SOU511,AZAD HEDAYAT HASAN,ئازاد هیدایت حسن,Assistant Professor
+101,azad.rasul@soran.edu.iq,SOU511,AZAD OTHMAN RASUL,ئازاد عثمان رسول,Assistant Professor
+379,azad.saeed@soran.edu.iq,SOU303,Azad Taher Saeed,ئازاد طاهر سعید,Lecturer
+15,azah.ahmed@soran.edu.iq,SOU603,AZAH KAMARAN AHMED,ئازا کامیران احمد محمدعلی,Lecturer
+380,azeez.azeez@soran.edu.iq,SOU306,Azeez Abdullah Barzinjy,عزیز عبداللە عزیز,Professor
+300,aziz.aziz@soran.edu.iq,SOU401,Aziz Yassin Aziz,عزیز یاسین عزیز,Assistant Lecturer
+364,badeea.abdi@soran.edu.iq,SOU303,Badeea Shafiq Abde,بدیع شفیق عبدی,Assistant Lecturer
+248,badiea.mahyoub@cheme.soran.edu.iq,SOU203,Badiea Abdullah Mohammed,بدیع عبداللە محمد,Professor
+290,bahaadin.ahmed@soran.edu.iq,SOU401,BAHAADIN FAQE AHMED,بهاءالدین فقی احمد عزیز,Assistant Professor
+232,bahra.noori@soran.edu.iq,SOU200,BAHRA MOHMAEED NOORI HASSAN,بهرە محمد نوری حسن,Lecturer
+42,bahri.yahya@soran.edu.iq,SOU604,BAHRI LATEEF YAHEE,بحری لطیف یحیی مجید,Assistant Lecturer
+96,bakhtiar.awla@soc.soran.edu.iq,SOU606,Bakhtiar Qasem Awla,بختیار قاسم عولا,Assistant Lecturer
+388,balkes.rasul@soran.edu.iq,SOU301,Balkes Haje Rasul,بلقیس حجی رسول,Assistant Lecturer
+291,baran.saeed@soran.edu.iq,SOU401,Baran Saeed Haji,باران سعید حاجی,Assistant Lecturer
+167,barzan.hasan@soran.edu.iq,SOU509,BARZAN KAMAL HASAN,بارزان کمال حسن,Lecturer
+17,barzan.hussein@soran.edu.iq,SOU603,BARZAN SABER HUSSEIN,بارزان صابر حسین طە,Assistant Professor
+71,basan.yaba@soran.edu.iq,SOU605,Basan tanj yaba ibrahim,باسان تانج یابە,Assistant Lecturer
+315,bashdar.muhammed@soran.edu.iq,SOU401,Bashdar Abdullah Mohammed,بەشدار عبداللە محمد,Assistant Lecturer
+389,bayan.mamand@soran.edu.iq,SOU301,Bayan Abdullah Mamand,بیان عبداللە مامند,Assistant Lecturer
+277,bazid.jibrael@soran.edu.iq,SOU403,Bazed Faidhulla Jibrael,بازید فیض اللە جبرائیل تمر,Assistant Lecturer
+239,bengin.masih@soran.edu.iq,SOU201,Bengin Masiho Awdel,بنگین مسیحۆ ئاودەڵ مسیحۆ,Lecturer
+348,Bewar.osman@soran.edu.iq,SOU304,BEWAR HAMAD OSMAN,بیوار حمد عثمان,Assistant Lecturer
+285,bilal.abdulhaq@soran.edu.iq,SOU403,Bilal Samad Abdulhaq,بلال صمد عبدالحق,Assistant Lecturer
+410,bnar.hamadameen@soran.edu.iq,SOU305,Bnar Azad HamadAmin,بنار ئازاد حمدامین,Assistant Lecturer
+183,botan.maghdid@soran.edu.iq,SOU510,BOTAN TOFIQ MAGHDID,بۆتان توفیق مغدید,Lecturer
+16,brwa.ameen@soran.edu.iq,SOU603,Brwa Hussein M.Ameen,بروا حسین محمدامین,Lecturer
+390,bushra.shnawa@soran.edu.iq,SOU301,Bushra Hussain Shnawa,بشری حسین شناوە,Professor
+184,bzhar.ahmed@hist.soran.edu.iq,SOU510,Bzhar Othman Ahmed,بژار عثمان احمد سعید,Lecturer
+292,bzhar.ahmed@soran.edu.iq,SOU401,BZHAR ABDULLAH AHMED,بژار عبداللە احمد عبداللە,Assistant Professor
+376,bzhar.kheder@soran.edu.iq,SOU303,Bzhar Abdulmanaf Kheder,بژار عبدالمناف خدر,Assistant Lecturer
+147,chaware.salih@soran.edu.iq,SOU501,CHAWARE NEAMAT SALEH,چاوەرێ‌ نعمت صالح,Assistant Lecturer
+207,chiayee.faqe@soran.edu.iq,SOU503,CHIAYEE KHORSEED FAQE,چیایی خورشید فقی احمد,Assistant Professor
+391,chiman.jawdat@soran.edu.iq,SOU301,Chiman Meerkhan Jawdat,چیمەن میرخان جودت,Assistant Lecturer
+94,chiya.sulaiman@soran.edu.iq,SOU606,Chia Sami Sulaiman,چیا سامی سلیمان,Assistant Lecturer
+256,Chiya.yousef@soran.edu.iq,SOU204,Chiya Yousef Rahimzadeh,چیا یوسف رحیم زادە,Lecturer
+185,chnor.ahmad@hist.soran.edu.iq,SOU510,CHNOR JAAFAR AHMAD,چنور جعفر احمد,Lecturer
+432,chonour.abdulqadir@soran.edu.iq,SOU305,Chonour Attallah Abdulqadir Mohammadi,چنور عطاء الله محمدی,Assistant Lecturer
+38,daban.qader@soran.edu.iq,SOU604,Daban Saber Qader,دابان صابر قادر,Assistant Lecturer
+411,dana.hamad@soran.edu.iq,SOU305,DANA RASUL HAMAD,دانا رسول حمد,Assistant Lecturer
+208,daner.ibrahim@soran.edu.iq,SOU503,Danar Abdullah Ibrahim,دانەر عبداللە ابراهیم,Assistant Lecturer
+473,dasko.sofi@soran.edu.iq,SOU100,Dasko Hasan Sofi,دسکو حسن صوفي,Assistant Lecturer
+418,didar.dlshad@soran.edu.iq,SOU305,DIDAR DLSHAD HAMAD AMEEN,دیدار دلشاد حمدامین علی,Assistant Lecturer
+131,dilawer.ehmed@soran.edu.iq,SOU502,Dilawer Jewher Ehmed,دلاوەر جوهر احمد رسول,Lecturer
+149,diler.kanaby@soran.edu.iq,SOU501,DLER SADIQ KANBI,دلیر صادق كانبی رسول,Assistant Professor
+168,dilshad.ali@soran.edu.iq,SOU509,DILSHAD SABRI ALI,دلشاد صبری علی حالی,Lecturer
+454,dilshad.shaikhah@soran.edu.iq,SOU701,DILSHAD MOHAMMED SHAIKHAH,دلشاد محمد شیخە,No Title
+424,diyar.fadhil@soran.edu.iq,SOU305,DIYAR SALAH FADHIL,دیار صلاح فاضل,Lecturer
+148,dlawar.bapir@kua.sora.edu.iq,SOU501,DLAWAR SHUKRI BAPIR,دلاوەر شکری باپیر,Assistant Lecturer
+21,dlawer.humer@soran.edu.iq,SOU603,DLAWER KARIM HUMAR,دلاور کریم عمر محمد,Assistant Professor
+318,dldar.qader@soran.edu.iq,SOU401,Dldar Abdulwahid Qader,دلدار عبدالواحد قادر حسین,Lecturer
+40,dldar.wsoo@soran.edu.iq,SOU604,Dldar Ado Wsoo,دلدار عدو وسو,Assistant Lecturer
+88,dlgash.saido@soran.edu.iq,SOU606,DLGASH SAID SAIDO,دلگش سعید سیدو,Assistant Lecturer
+35,dlniya.rasull@soran.edu.iq,SOU603,DLNYA HUSSEIN RASOOL,دڵنیا حسێن رسول,Assistant Lecturer
+392,dlshad.hassan@soran.edu.iq,SOU301,Dlshad Hosein Hassan,دلشاد حسین حسن,Lecturer
+254,dusti.abbas@soran.edu.iq,SOU204,Dosti kheder Abbas,دوستی خدر عباس,Assistant Lecturer
+345,dyar.khalil@soran.edu.iq,SOU304,Diyar Muadh Khalil,دیار معاذ خلیل,Lecturer
+377,edris.pirot@soran.edu.iq,SOU303,Edris Mohammed Pirot,ادریس محمد پیرۆت,Assistant Lecturer
+280,ehsan.salih@soran.edu.iq,SOU403,Ehsan shareef salih,احسان شریف صالح علی,Lecturer
+276,emdad.khaleel@soran.edu.iq,SOU403,Emdad khaleel mahmood,ایمداد خلیل محمود عبدالرحمن,Assistant Lecturer
+455,erfan.abdullah@soran.edu.iq,SOU701,ERFAN MUHAMMAD ABDULLAH,عرفان محمد عبداللە,No Title
+412,fakher.mohammad@soran.edu.iq,SOU305,Fakher Abdulkarim Mohammad,فاخر عبدالكریم محمد,Assistant Lecturer
+186,fakhir.ababakr@soran.edu.iq,SOU510,FAKHIR ALI ABABAKR ALI,فاخر عالی عبابكر عدی,Lecturer
+13,falih.shlsh@soran.edu.iq,SOU603,FALIH JAAZ SHALASH,فالح جعاز شلش,Professor
+202,farhang.mahmood@soran.edu.iq,SOU510,Farhang Noori Mahmood,فرهنگ نوری محمود,Assistant Lecturer
+187,faris.yahya@soran.edu.iq,SOU510,FARS LATTIF YAHYA,فارس لطیف یحیی مجید,Lecturer
+446,farman.aula@soran.edu.iq,SOU508,Ferman Hasan Awla,فرمان حسن عولا,Lecturer
+319,farman.mirhamad@soran.edu.iq,SOU401,FARMAN MUHAMMAD MIRHAMAD,فرمان محمد میرحمد رسول,Lecturer
+261,farooq.abdullah@soran.edu.iq,SOU404,Farooq Omar Abdullah,فاروق عمر عبداللە,Assistant Lecturer
+162,faroq.khalid@soran.edu.iq,SOU501,Faroq Aziz Khalid,فاروق عزیز خالد,Assistant Lecturer
+324,farsat.ahmed@soran.edu.iq,SOU401,"FARSAT RASOOL AHMED",فرست رسول احمد,Assistant Lecturer
+89,Farsat.hussin@soran.edu.iq,SOU606,FURSAT AHMAD HUSSEIN,فرصە احمد حسین,Lecturer
+260,farshad.mahmood@soran.edu.iq,SOU404,Farshad Fikree Mahmood,فرشاد فکری محمحد,Assistant Lecturer
+349,faruq.mena@soran.edu.iq,SOU304,FARUQ ABDULLAH MENA,فاروق عبداللە مینا,Lecturer
+470,fathi.ziro@soran.edu.iq,SOU401,Fathi Zeroo Zeroo,فتحی زیرو زیرو,Lecturer
+132,fathl.amin@soran.edu.iq,SOU502,FADHIL HAMASAEED AMEEN,فاضل حمەسعید امین محمد,Assistant Professor
+121,fekri.muhammad@soran.edu.iq,SOU508,Fikri Majid Muhammad,فکری مجید محمد حاجی محمود,Assistant Lecturer
+114,ferman.awla@psy.soran.edu.iq,SOU508,FERMAN HASAN AWLA,فرمان حسن عولا,Lecturer
+227,foad.yousefi@soran.edu.iq,SOU200,Foad hatam yousef,فٶاد حاتم یوسفی,Assistant Lecturer
+102,gailan.faqe@soran.edu.iq,SOU511,GAYLAN RASUL FAQE IBRAHIM,گیلان رسول فقی ابراهیم,Assistant Professor
+32,gailan.hasan@soran.edu.iq,SOU603,Gailan Mohamad Hasan, گیلان محمد حسن,Assistant Lecturer
+169,ghareeb.sulaiman@soran.edu.iq,SOU509,Ghareeb Ibrahim Sulaiman,غریب ابراهیم سلیمان حمید,Assistant Lecturer
+122,ghareeba.awla@soran.edu.iq,SOU508,Ghareeba Hussein Awla,غریبە حسین عولا,Assistant Lecturer
+378,goran.hasan@soran.edu.iq,SOU303,Goran Fakhir Hasan,گوران فاخر حسن,Assistant Lecturer
+293,govand.mohammad@soran.edu.iq,SOU401,GOVEND JUTIAR MUHAMMAD,گوڤەند جوتیار محمد قادر,Assistant Lecturer
+150,gulchin.muhammadamin@soran.edu.iq,SOU501,GULCHIN AZEEZ M.AMEEN,گولچین عزیز محمدامین,Assistant Lecturer
+294,habeeb.ibrahim@soran.edu.iq,SOU401,HABIB MUSTAFA IBRAHIM,حبیب مصطفی ابراهیم محمد,Lecturer
+269,haider.aref@soran.edu.iq,SOU404,Haidar Salahadin Arif,حیدر صلاح الدین عارف محمد,Assistant Professor
+46,haji.haji@kue.soran.edu.iq,SOU604,Haji Abdulrahman Haji,حاجی عبدالرحمن حاجی,Assistant Lecturer
+73,hakeem.sulaiman@ena.soran.edu.iq,SOU605,Hakeem Hasan Sulaiman,حکیم حسن سلیمان,Assistant Lecturer
+111,halgurd.husain@soran.edu.iq,SOU511,HALGURD SHEIKH HUSSEIN,هەلگورد شێخ حسین شیخ,Assistant Lecturer
+350,halgurd.hussein@soran.edu.iq,SOU304,HALGURD SULAIMAN HUSSEIN,هەلگورد سلیمان حسین,Assistant Lecturer
+151,halmat.rasool@soran.edu.iq,SOU501,HALMAT BAIZ RASOOL,هەلمەت بایز رسول خضر,Professor
+245,halmat.saeed@soran.edu.iq,SOU203,Halmat Ismael Saeed,هەڵمەت اسماعیل سعید,Assistant Lecturer
+250,hamid.kazemihaki@visitors.soran.edu.iq,SOU203,Hamid Kazemihaki,حمید کاظمی حکی صدیق,Lecturer
+478,hamid.nabi@soran.edu.iq,SOU604,Hameed Hameed Nabee,حمید حمید نبى,Assistant Lecturer
+479,hamid.nabi@soran.edu.iq,SOU604,Hameed Hameed Nabee,حمید حمید نبى,Assistant Lecturer
+463,hamin.mohammed@cheme.soran.edu.iq,SOU701,HAMIN JAAFAR MOHAMMED,هەمین جعفر محمد,No Title
+198,hamza.yaseen@soran.edu.iq,SOU510,Hamza Kakh Yassen,همزە کاکە یاسین,Assistant Professor
+330,handren.eahya@soran.edu.iq,SOU402,HANDREN AHMAD YEHYA,هندرین احمد یحیی,Lecturer
+481,hassan.h@pe.soran.edu.iq,SOU100,HASSAN ZRAR HUSSEIN,حسن زرار حسين,Lecturer
+288,hassan.mustafa@soran.edu.iq,SOU401,HASSAN MUSTAFA HUSSIEN,حسن مصطفی حسین خدر,Lecturer
+210,hauzhin.ahmad@soran.edu.iq,SOU503,HAUZHIN RASHADADDIN AHMAD,هاوژین رشادالدین احمد,Assistant Professor
+59,haval.khthr@soran.edu.iq,SOU301,Haval Abdullah Khudher,هڤال عبداللە خضر,Lecturer
+351,haval.mohammed@soran.edu.iq,SOU304,HAVAL MAHMOOD MAHAMMAD SALIH,هەڤال محمود محمد صالح,Assistant Professor
+43,hawkar.khidhir@soran.edu.iq,SOU604,HAWKAR OMER KHIDHIR,هاوکار عمر خضر زینل,Lecturer
+37,hawren.kamal@pe.soran.edu.iq,SOU603,Hawren Burhan Kamal,هەورین برهان کمال,Assistant Lecturer
+152,hayat.abdulkarim@soran.edu.iq,SOU501,HAYAT SAEED ABDULKAREEM,حیات سعید عبدالكریم,Assistant Professor
+209,haydar.sdiq@soran.edu.iq,SOU503,HAIDAR MUHAMMAD SDIQ,حیدر محمد صدیق عبداللە,Lecturer
+47,hazha.mohamadameen@gsci.soran.edu.iq,SOU604,HAZHA CHEECHO HAMADAMEEN,هاژە جیجۆ محمدامین احمد,Lecturer
+153,Hazhar.Abdulghafur@soran.edu.iq,SOU501,HAZHAR AHMED ABDULGHAFUR,هەژار احمد عبدالغفور عبدالرحیم,Assistant Professor
+434,hazhar.hamadameen@soran.edu.iq,SOU302,Hazhar Muhammad Hamadameen,هەژار محمد حمدامین,Lecturer
+326,hazim.khidhir@soran.edu.iq,SOU401,Hazim Azeez Khudhur,حازم عزیز خضر احمد,Assistant Lecturer
+365,Hedayat.hashemi@soran.edu.iq,SOU303,HEDAYAT SEYED KARIM HASHEMI,هدایت سیدكریم هاشمی,Assistant Lecturer
+282,Hemen.mustafa@soran.edu.iq,SOU403,Hemen Kamal Mustafa,هیمن کمال مصطفی حسین,Assistant Lecturer
+65,hemn.abdulla@soran.edu.iq,SOU601,Hemn Ahmad Abdullah,هیمن احمد عبداللە,Assistant Lecturer
+301,hemn.hamadameen@soran.edu.iq,SOU401,Hemn Hussein Hamad Ameen,هێمن حسین حمدامین,Lecturer
+103,hemn.ismail@soran.edu.iq,SOU511,HEMIN MOHAMMED ISMAEL,هیمن محمد اسماعیل,Lecturer
+133,hemn.mustafa@soran.edu.iq,SOU502,Hemn Azeez Mustafa,هیمن عزیز مصطفی,Lecturer
+399,hendren.abdullah@soran.edu.iq,SOU301,Hendren Jalal Abdullah,هندرین جلال عبداللە,Assistant Lecturer
+425,hersh.azez@soran.edu.iq,SOU305,Heersh Azeez Khorsheed,هیرش عزیز خورشید عزیز,Assistant Lecturer
+5,hersh.hamadameen@soran.edu.iq,SOU603,Hersh Yousif Hamad Ameen,هیرش یوسف حمدامین,Lecturer
+25,hewa.nabee@soran.edu.iq,SOU603,HEWA MOHAMMED AMEEN NABEE,هیوا محمدامین نبی,Lecturer
+230,hewa.omer@soran.edu.iq,SOU200,Hewa Hussein Omer,هیوا حسین عمر,Lecturer
+329,himdad.ahmed@soran.edu.iq,SOU401,HEMDAD FAISAL AHMAD,هیمداد فیصل احمد خلیفە,Lecturer
+125,hiwa.jamil@soran.edu.iq,SOU508,HEWA ABDULAZEEZ JAMEEL,هیوا عبدالعزیز جمیل محمد,Lecturer
+145,hiwa.kareem@soran.edu.iq,SOU502,Hiwa Hassan Kareem,ی.هیوا حسن کریم,Lecturer
+352,Honar.Hamad@soran.edu.iq,SOU304,HONAR JAMAL HAMAD,هونەر جمال حمد,Assistant Lecturer
+115,hoshang.abdulla@soran.edu.iq,SOU508,HOSHANG FARHAD ABDULLAH,هوشنگ فرهاد عبداللە,Lecturer
+413,hoshang.awla@soran.edu.iq,SOU305,HOSHANG QASAIM AWLA,هۆشەنگ قاسم عولا,Assistant Lecturer
+126,hoshang.hama@soran.edu.iq,SOU508,"HOSHANG DARA HAMAAMEEN",هوشنگ دارا حمەامین نجیب,Lecturer
+457,hossein.khojasteh@soran.edu.iq,SOU701,Hossein Mahmoud Khojasteh,حسین محمود خجسته,Lecturer
+27,hozan.farho@pe.soran.edu.iq,SOU603,Hozan Nadhmi Farho,هوزان نظمی فرحو,Assistant Lecturer
+39,hunar.mamsofi@soran.edu.iq,SOU604,Hunar Anwar Mam Sofi,هونەر انور مام صوفی,Assistant Lecturer
+281,hushyar.sulaiman@soran.edu.iq,SOU403,Hushyar Yaseen Sulaiman,هشیار یاسین سلیمان,Lecturer
+366,hussein.hussein@soran.edu.iq,SOU303,Hussein Suaad Hussein,حسین سعاد حسێن,Lecturer
+84,ibrahim.khudir@soran.edu.iq,SOU602,IBRAHIM MUSTAFA KHUDIR,ابراهیم مصطفی خدر ابابكر,Assistant Lecturer
+325,ibrahim.mohammad@soran.edu.iq,SOU401,IBRAHIM MOHAMMED AHMED,ابراهیم محمد احمد,Assistant Lecturer
+170,ibrahim.sadiq@soran.edu.iq,SOU509,IBRAHIM OMER SADIQ,ابراهیم عمر صادق,Lecturer
+295,idrees.rasul@soran.edu.iq,SOU401,IDRES QADER RASOOL, ادریس قادر رسول باسە,Assistant Professor
+72,ijad.hamad@soran.edu.iq,SOU605,EJAD NADIR HAMAD,ایجاد نادر حمد حسن,Lecturer
+144,islam.niamat@soran.edu.iq,SOU502,Islam Abdullah Niamat,اسلام عبداللە نعمت,Assistant Lecturer
+428,ismael.akray@maths.soran.edu.krd,SOU305,ISMAEL SABAH AHMED,اسماعیل صباح احمد,Lecturer
+356,ismael.ismael@soran.edu.iq,SOU302,Ismail Ali Ismail,اسماعیل علی اسماعیل,Assistant Lecturer
+229,jagar.ali@soran.edu.iq,SOU200,Jagar Abdulazez Ali,جگر عبدالعزیز علی,Assistant Professor
+400,jalil.abdulla@soran.edu.iq,SOU301,Jalil Mahmwd Abdulla,جلیل محمود عبداللە,Lecturer
+134,Jamal.amin@soran.edu.iq,SOU502,JAMAL AZIZ AMEEN,جمال عزیز امین صالح,Assistant Professor
+243,jamal.kakrasul@soran.edu.iq,SOU201,Jamal Ismail Kakrasul,جمال اسماعیل كاك رسول رمضان,Assistant Professor
+4,jamal.mustafa@soran.edu.iq,SOU401,Jamal Jalal Mustafa,جمال جلال مصطفی,Assistant Lecturer
+472,Jawad.Saeed@soran.edu.iq,SOU100,JAWAD SADQ SAEED,جواد صادق سعید,Assistant Lecturer
+445,jawhar.saeed@soran.edu.iq,SOU403,Jawhar Ahmed Saeed,جوهر احمد سعید,Assistant Lecturer
+353,jegyr.agha@soran.edu.iq,SOU304,JEGER ANWAR AGHA,جێگیر انور اغا,Assistant Lecturer
+104,jinan.ibrahim@soran.edu.iq,SOU511,JINAN RAHMAN IBRAHIM,جینان رحمان ابراهيم,Assistant Professor
+135,Juwan.abdullah@soran.edu.iq,SOU502,JWAN ABDULQADER ABDULLA,جوان عبدالقادر عبداللە,Assistant Professor
+154,kadhim.hussein@soran.edu.iq,SOU501,KADHIM SHEIKH HUSSEIN,کاظم شیخ حسین شیخ,Assistant Lecturer
+66,kadhim.mohammed@soran.edu.iq,SOU601,Kadhim Sedeeq Mohammed,کاظم صدیق محمد,Assistant Lecturer
+164,kafia.ridha@soran.edu.iq,SOU501,Kafia Sabah Ridha,کافیە صباح رضا,Lecturer
+109,kaka.aziz@soran.edu.iq,SOU511,Kaka Jaafar Azeez,كاكە جعفر عزیز,Assistant Lecturer
+75,kako.yousif@ene.soran.edu.iq,SOU605,Kako Mirhaj Yousif,ککو میرحاج یوسف,Assistant Lecturer
+453,kamal.kolo@soran.edu.iq,SOU701,Kamal Kolo,كمال يوسف عوديشو,Professor
+22,kamal.sharif@soran.edu.iq,SOU603,KAMAL NADER FAQE SHARIF,کمال نادر فقی شریف,Lecturer
+171,kamaran.abdulla@soc.soran.edu.iq,SOU509,KAMARAN AZIZ ABDULLA,کامران عزیز عبداللە,Assistant Lecturer
+116,kamaran.ali@soran.edu.iq,SOU508,KAMARAN MAJEED ALI,کامران مجید علی,Lecturer
+297,kamaran.alsalihi@soran.edu.iq,SOU401,KAMARAN HUSIN SALIHI,کامەران حسن بهاالدین,Professor
+238,kamaran.ismail@cive.soran.edu.iq,SOU201,Kamaran Sulaiman Ismail,کامران سلیمان اسماعیل,Lecturer
+264,Kamaran.Yousif@soran.edu.iq,SOU404,Kamaran Ibrahim Yousif,كامران ابراهیم یوسف,Assistant Lecturer
+354,karmand.ahamad@soran.edu.iq,SOU304,KARMAND KHDR AHMAD,كارمند خضر احمد,Assistant Lecturer
+219,karmand.hamad@soran.edu.iq,SOU503,KARMAND ABDULLA Hamad,کارمند عبداللە حمد احمد,Lecturer
+172,karwan.aziz@soc.soran.edu.iq,SOU509,KARWAN MUHEMMED AZIZ,کاروان محمد عزیز,Assistant Lecturer
+442,Karwan.kakamad@soran.edu.iq,SOU508,KARWAN KAKABRA KAKAMAD,کاروان کاکەبرا کاکەمند,Assistant Professor
+117,karwan.kakmad@soran.edu.iq,SOU508,KARWAN KAKABRA KAKAMAD,کاروان کاکەبرا کاکەمند,Assistant Professor
+393,karwan.othman@soran.edu.iq,SOU301,Karwan Ismael othman,کاروان اسماعیل عثمان,Lecturer
+173,karzan.abdulrahman@soran.edu.iq,SOU509,KARZAN HASAN ABDULRAHMAN,كارزان حسن عبدالرحمن,Lecturer
+394,karzan.khalid@soran.edu.iq,SOU301,Karzan Mohammad Khalid,کارزان محمد خالد,Lecturer
+29,karzan.khdir@soran.ed,SOU603,karzan kareem kheder,کارزان کریم خدر علی,Assistant Lecturer
+374,keyvan.amjadian@soran.edu.iq,SOU303,Keyvan Mohammadali Saeed Amjadian,کیوان محمدعلی امجدیان,Assistant Lecturer
+249,kha078@soc.soran.edu.iq,SOU203,Khadigeh Rasoul Mirza,خدیجە رسول میرزا,Assistant Lecturer
+486,khabur.wsu@visitors.soran.edu.iq,ART01,KABUR WSU WSU,خابۆر وسو وسو,Assistant Lecturer
+123,khalil.mawlud@soran.edu.iq,SOU508,Khaleel Saleem Mawlod,خلیل سلیم مولود,Assistant Lecturer
+395,khatab.mawlood@soran.edu.iq,SOU301,Khatab Rashid Mawlood,خطاب رشید مولود,Lecturer
+56,khlood.saeed@soran.edu.iq,SOU601,KHLUD NOORI SAEED ALANBAGI,ی.خلود نوری سعید,Lecturer
+28,kosrat.qader@soran.edu.iq,SOU603,KOSRAT HUSSEIN QADER,كوسرەت حسین قادر,Lecturer
+30,Kovan.farho@pe.soran.edu.iq,SOU603,Kovan Nazmi Farho,کۆڤان نظمی فرحو,Assistant Lecturer
+76,kovan.mustafa@soran.edu.iq,SOU605,KOVAN RIZGAR MUSTAFA,کوڤان رزگار محمد مصطفی,Lecturer
+396,kovan.rashid@soran.edu.iq,SOU301,Kovan Fouad Rashid,کوڤان فواد رشید,Assistant Lecturer
+340,kurdista.mhyadin@soran.edu.iq,SOU402,KURDISTAN RAFIQ MEHYADIN,کوردستان رفیق محی الدین امین,Assistant Professor
+155,kurdistan.nadr@soran.edu.iq,SOU501,KURDISTAN ABDULWAHHAB NADR,کوردستان عبدالوهاب نادر ابراهیم,Lecturer
+385,kurdo.chato@soran.edu.iq,SOU301,Kurdo Bapir Chatoo,کوردۆ باپیر چتو,Assistant Lecturer
+211,lania.rashid@soran.edu.iq,SOU503,LANIA HAMAD RASHEED,لانیا حمە رشید جوكل,Assistant Lecturer
+332,mahdi.abdulla@soran.edu.iq,SOU402,MAHDI AMEEN ABDULLAH,مهدی امین عبداللە,Assistant Lecturer
+337,mahdi.ahmad@soran.edu.iq,SOU402,Mahdi Mustafa Ahmed,مهدی مصطفی فقی احمد,Lecturer
+188,mahdi.hussein@hist.soran.edu.iq,SOU510,MAHDI JALAL HUSEEN,مهدی جلال حسین,Assistant Lecturer
+112,mahdy.qadir@soran.edu.iq,SOU508,MAHDI AZEEZ QADER,مهدی عزیز قادر حسین,Lecturer
+241,mahfouz.rostamzadeh@soran.edu.iq,SOU201,Mahfouz Mohammad Rostamzadeh,محفوظ محمد رستم زادە,Assistant Professor
+64,mahmood.mahmood@soran.edu.iq,SOU601,Mahmood Hawar Mahmood,محمود هاوار محمود,Assistant Lecturer
+397,mahmood.nooraddin@soran.edu.iq,SOU301,Mahmood Nooraddin Mahmood,محمود نورالدین محمود عبداللە,Assistant Lecturer
+67,mahmoud.hassan@soran.edu.iq,SOU601,MAHMOUD AHMED HASSAN,محمود احمد حسن فیض الله,Assistant Professor
+367,majaz.malko@soran.edu.iq,SOU303,Majaz Abdulrahman Malko,مجاز عبدالرحمن ملكو,Assistant Lecturer
+466,Masoud.Hamad@soran.edu.iq,SOU701,MASOUD SHEKHA HAMAD,مسعود شێخە حمد,No Title
+57,mazin.othman@soran.edu.iq,SOU601,MAZIN SHERZAD OTHMAN,مازن شێرزاد عثمان عبدالرحمن,Professor
+174,media.fattah@soc.soran.edu.krd,SOU509,MEDIA IBRAHIM FATTAH,میدیا ابراهیم فتاح قادر,Assistant Professor
+266,mikaeel.munaf@soran.edu.iq,SOU404,Mikaeel Biro Munaf,میكائیل بیرو مناف غفور,Lecturer
+90,miran.salh@soran.edu.iq,SOU606,MERAN MAHAMAD SALIH,میران محمد صالح طە,Assistant Professor
+267,mohajir.saleem@soran.edu.iq,SOU404,Muhajir Hagar Saleem Hagar,مهاجر حجر سلیم,Assistant Lecturer
+368,mohammad.askandar@soran.edu.iq,SOU303,Mohammad Ghorshi Askandar,محمد قرشی اسكندر,Lecturer
+79,mohammad.mohammad@math.soran.edu.iq,SOU602,MOHAMMAD JAMIL MOHAMMAD,محمد جمیل محمد,Assistant Lecturer
+233,mohammad.molod@soran.edu.iq,SOU201,Mohamad Molod Ismael,محمدامین اسماعیل مولود احمد,Lecturer
+373,mohammad.nourmohammadi@soran.edu.iq,SOU303,Mohammad Sadi Seddigh,محمد سعدی نور محمدی,Assistant Lecturer
+62,Mohammad.saadatian@soran.edu.iq,SOU601,MOHAMMAD SAADATIAN DOULEPESAN,محمد علی سعادتیان,Assistant Lecturer
+303,mohammed.amen@law.soran.edu.iq,SOU401,MOHAMMAD SHAHAB MOHAMMADAMEEN,محمد شهاب محمدامین شیخ,Lecturer
+189,Mohammed.Ibrahim@soran.edu.iq,SOU510,MOHAMMED AHMED IBRAHIM,محمد احمد ابراهیم احمد,Lecturer
+469,Mohammed.mahmood@soran.edu.iq,SOU701,MOHAMMED MIRZA AGHA MAHMOOD,محمد میرزا اغا مەحموود,No Title
+212,mohammed.mohammed@soran.edu.iq,SOU503,MOHAMMED HOSEIN MOHAMMED,محمد حسین محمد,Assistant Professor
+77,mokhles.ibrahim@soran.edu.iq,SOU605,MOKHLES SALEH IBRAHIM,مخلص صالح ابراهیم موسی,Lecturer
+416,mudhafar.haji@soran.edu.iq,SOU305,Mudhafar Haji MalaAbd,مظفر حاجی ملاعبد گل عزیز,Assistant Lecturer
+31,Mudhafar.khdhur@soran.edu.iq,SOU603,Muzaffar Ahmed,مظفر احمد خضر رسول,Assistant Lecturer
+53,mudtafar.ismahil@soran.edu.iq,SOU604,MUDHAFAR MOSTAFA ISMAHIL,مظفر مصطفی اسماعیل خدر,Lecturer
+429,Muhammad.amin@soran.edu.iq,SOU305,Muhammadamin Muhammad Ali Daneshwar,محمدامین محمد علی دانشور,Assistant Professor
+136,muhammad.fathulla@soran.edu.iq,SOU502,MUHAMMAD ABDULLA FATHULLA,محمد عبداللە فتح الله رسول,Assistant Professor
+19,muhsin.ahmad@soran.edu.iq,SOU603,Muhsin Aziz Ahmad,محسن عزیز احمد سلیمان,Lecturer
+58,muna.al-deen@soran.edu.iq,SOU601,MUNA SALAHALDEEN YOUSIF,منی صلاح‎‏الدین یوسف اسحاق,Assistant Lecturer
+283,Murad.Hamze@soran.edu.iq,SOU403,Murad Muzafer Hamze,مراد مظفر همزە گولیك,Lecturer
+179,murad.mohammad@soran.edu.iq,SOU509,Murad Hakim Mohammad,مراد حکیم محمد,Assistant Professor
+178,muslih.irwani@soran.edu.iq,SOU509,Muslih Abdulqahar Irwani,مصلح عبدالقهار ئەریوان,Lecturer
+268,mustafa.faris@soran.edu.iq,SOU404,Mustafa Farzenda Faris,مصطفی فرزندە فارس شینو,Lecturer
+60,mzhda.hamadamin@soran.edu.iq,SOU601,MZHDA SEDEEQ HAMAD AMEEN,مژدە صدیق حمدامین,Assistant Lecturer
+357,nabaz.mohammad@soran.edu.iq,SOU302,Nabaz Abdulmajed Muhammad Salih,نەبەز عبدالمجید محمد صالح,Professor
+375,nahida.azo@soran.edu.iq,SOU303,Nahida Muhammad Azo,ناهیدە محمد عزو محمد,Assistant Lecturer
+270,naji.odel@soran.edu.iq,SOU404,NAJI Maseeho odel,ناجی مسیحو اودل مسیحو,Lecturer
+228,namam.salih@soran.edu.iq,SOU200,Namam muhamad Salih,نەمام محمد صالح,Assistant Professor
+18,naqi.jasm@soran.edu.iq,SOU603,NAGI HAMZA JASIM,نقی حمزە جاسم عبدو,Assistant Professor
+156,nardin.hamid@soran.edu.iq,SOU501,NARDIN KHALiD HAMID,نەردین خالد حمید رسول,Assistant Lecturer
+33,naree.khorsheed@pe.soran.edu.iq,SOU603,NAREE IBRAHIM KHORSHEED,ناری ئیبراهیم خورشید,Assistant Lecturer
+401,narmin.ismaiel@soran.edu.iq,SOU301,Narmin Abdulsamad Ismael,نرمین عبدالصمد اسماعیل,Lecturer
+284,nashida.hassan@soran.edu.iq,SOU403,NASHIDA AHMED HASAN,نشیدا احمد حسن,Assistant Lecturer
+137,nasih.hamadamin@soran.edu.iq,SOU502,NASIH OTHMAN HAMAD AMIN,ناصح عثمان حمدامین حمد,Assistant Professor
+190,nasih.mustafa@soran.edu.iq,SOU510,NASIH AZIZ MUSTAFA,ناصح عزیز مصطفی عولا,Assistant Lecturer
+143,nawar.nabee@soran.edu.iq,SOU502,Nawar Satar NABEE,نوار ستار نبی زار,Lecturer
+343,nawzad.ahmed@maths.soran.edu.krd,SOU304,NAWZAD MOHAMMEDAMIN,نوزاد محمدامین احمد,Lecturer
+331,nawzad.hamadamen@soran.edu.iq,SOU401,NAWZAD JAWHAR HAMAD AMEEN,نەوزاد جوهر حمدامین مام صوفی,Assistant Lecturer
+78,nawzar.haji@ena.soran.edu.iq,SOU605,NAUZAR MUHAMMAD HAJY,نەوزەر محمد حجی,Assistant Professor
+338,nayar.hamadamin@soran.edu.iq,SOU402,NIYAR MHEDDIN HAMADAMIN,نیار محی الدین حمدامین فتاح,Lecturer
+263,nazar.maruf@soran.edu.iq,SOU404,NAZAR NASRULDEEN MAAROOF,نزار نصرالدین معروف,Assistant Lecturer
+402,nazeera.jalil@soran.edu.iq,SOU301,Nazeera Abdullah Jalil Abdullah,نزیرە عبداللە جلیل عبداللە,Assistant Lecturer
+213,naznaz.mal@soran.edu.iq,SOU503,NAZNAZ SHAWQI MALLA,نازناز شوقی ملا حسن,Lecturer
+214,nehad.ahmed@ena.soran.edu.krd,SOU503,NEHAD FAISAL AHMED,نیهاد فیصل احمد خلیفە,Lecturer
+369,nemat.rashid@soran.edu.iq,SOU303,Nematollah Muhammad Rashid,Lecturer
+451,nergz.star@soran.edu.iq,SOU100,Nergz Sattar Mohammed,نیرکز ستار محمد,Assistant Lecturer
+191,niamat.mahmud@soran.edu.iq,SOU510,NEAMAT ALI MAHMOOD,نعمت علی محمود احمد,Lecturer
+205,niaz.aziz@soran.edu.iq,SOU503,NIAZ MUHSIN AZIZ,نیاز محسین عزیز,Lecturer
+449,nigar.joj@visitors.soran.edu.iq,SOU605,Nigar Khano Jooj,نیکار خانو جوج,Assistant Lecturer
+258,nihad.hasan@soran.edu.iq,SOU404,Nihad Khthr Hussain,نیهاد خضر حسن علی,Assistant Lecturer
+91,nihad.qader@soran.edu.iq,SOU606,Nihad Mohammed Qader Salih,نهاد محمد قادر صالح,Assistant Lecturer
+427,Niyazy.hussein@soran.edu.iq,SOU305,NIAZY HADY HUSSEIN,نیازی هادی حسێن,Assistant Professor
+215,Nizar.hamadamin@soran.edu.iq,SOU503,NEZAR MAYADIN HAMADAMIN,نزار محی الدین حمدامین فتاح,Assistant Lecturer
+252,nzar.piro@soran.edu.iq,SOU204,Nzar Shakr Piro,نزار شاکر پیرۆ سنجو,Lecturer
+105,omar.hussein@soran.edu.iq,SOU511,OMAR HASAN HUSSEIN,عمر حسن حسين,Assistant Professor
+20,omar.karim@soran.edu.iq,SOU603,OMAR ALI KARIM,عمر عالی كریم احمد,Assistant Professor
+138,omar.mahmoud@soran.edu.iq,SOU701,OMAR AHMED MAHMOUD,عمر احمد محمود,Lecturer
+328,omar.omar@soran.edu.iq,SOU401,OMAR HASSAN OMAR,عمر حسن عمر,Lecturer
+298,omed.hassan@soran.edu.iq,SOU401,OMED SAFARY HASSAN,اومید سفری حسن عبداللە,Lecturer
+304,omed.khizir@soran.edu.iq,SOU401,OMED SAHEED KHUDHUR,ئومید سعید خضر سلطان,Lecturer
+95,omer.ramo@sose.soran.edu.iq,SOU606,Omer Rashid Ramo,عمر رشید رمو عمر,Assistant Professor
+305,othman.abdulla@soran.edu.iq,SOU401,OTHMAN MUSTAFA ABDULLAH,عثمان مصطفی عبداللە,Assistant Professor
+157,pakhshan.hamad@soran.edu.iq,SOU501,PAKHSHAN SABIR HAMAD,پەخشان صابر حمد حمد,Professor
+118,pakstan.mohamedamin@psy.soran.edu.iq,SOU508,PAKSTAN FAIQ MOHAMEDAMIN,پاکستان فائق محمدامین عباس,Lecturer
+216,parishan.ahmad@ena.soran.edu.iq,SOU503,PARESHAN HAJI AHMAD,پریشان حاجی احمد,Lecturer
+459,parwin.jalil@soran.edu.iq,SOU701,PARWIN JALAL JALIL,پەروین جلال جلیل,Assistant Lecturer
+92,paywand.hamad@soran.edu.iq,SOU606,PAYWAND MOHAMMAD HAMAD,پەیوەند محمد حمد مصطفی,Assistant Lecturer
+98,peshawa.abdullah@soran.edu.iq,SOU607,Peshawa Fars Abdullah,پێشەوا فارس عبداللە,Assistant Lecturer
+458,peyman.aspoukeh@soran.edu.iq,SOU701,Peyman Khaled Aspoukeh,پیمان خالد اسپوکە,Assistant Lecturer
+272,qabil.hamad@soran.edu.iq,SOU404,Qabil Zrar Hamad Ismail,قابیل زرار حمد اسماعیل,Lecturer
+158,qais.kakl@soran.edu.iq,SOU501,QAIS KAKL TAWFIQ,قەیس کاکل توفیق خدر,Professor
+419,rafiq.maulud@soran.edu.iq,SOU305,Rafiq Hamad Amin Maulud,رفیق حمدامین مولود,Assistant Lecturer
+370,rahel.hamad@soran.edu.iq,SOU701,Rahel Othman Hamad,رهیل عثمان حمدصدیق,Assistant Professor
+415,rasool.jader@soran.edu.iq,SOU305,Rasool Fakhir Jader,رسول فاخر جادر كمو,Assistant Lecturer
+204,rasul.rasul@soran.edu.iq,SOU510,RASOUL MUHAMMED RASOUL,رسول محمد رسول,Assistant Professor
+306,razwan.saleh@soran.edu.iq,SOU401,RDHWAN SHAREEF SALIH,رضوان شریف صالح علی,Assistant Professor
+139,rebar.aziz@soran.edu.iq,SOU502,Rebar Abdulghaffar Azeez,ریبر عبدالغفار عزیز مام فقی,Lecturer
+175,rebaz.mahmood@soran.edu.iq,SOU509,REBAZ JALAL MAHMOOD,رێباز جلال محمود,Lecturer
+192,rebaz.omer@hist.soran.edu.iq,SOU510,REBAZ DLAWAR OMAR,ریباز دلاوەر عمر,Assistant Lecturer
+333,rebaz.smail@soran.edu.iq,SOU402,Rebaz Ali Smail,رێباز علی سمایل حمد,Lecturer
+193,rebin.haji@soran.edu.iq,SOU510,REBIN SAEED MALA HAJI,ریبین سعید ملا حاجی,Lecturer
+140,rebwar.khatab@soran.edu.iq,SOU502,REBWAR ABDULLA KHATAB,ریبوار عبداللە خطاب عمر,Assistant Professor
+307,rebwar.mahmood@law.soran.edu.iq,SOU401,REBWAR MAGHDID MAHMOOD,ریبوار مغدید محمود,Lecturer
+1,rekan.awla@soran.edu.iq,SOU401,Rekan Neamat Awla,ڕێکان نعمت عولا,Assistant Lecturer
+163,renas.nader@soran.edu.iq,SOU501,Renas Khalis Nader,رێناس خالص نادر,Assistant Lecturer
+471,renas.qadir@soran.edu.iq,SOU100,Renas Farooq Qader,ریناس فاروق قادر,No Title
+460,renjbar.mhamedsharif@soran.edu.iq,SOU701,RENJBAR MUKSY MUHAMMADSHARIF,رێنجبەر مکسی محمدشریف,Assistant Lecturer
+433,rezhna.hussain@soran.edu.iq,SOU304,Rezhna Mustafa Hussein,رێژنە مصطفی حسین,Lecturer
+273,ribaz.biro@soran.edu.iq,SOU404,Ribaz Chato Biro,رێباز چەتۆ بیر,Lecturer
+48,Rizgar.Ahmed@soran.edu.iq,SOU604,Rizgar Abdullah Ahmed,رزگار عبداللە احمد محمد,Lecturer
+61,rizgar.mohammad@soran.edu.iq,SOU601,RIZGAR HASSAN MOHAMMAD,رزگار حسن محمد حسین,Lecturer
+234,rizgar.omar@soran.edu.iq,SOU201,Rizgar Abdulrahman Omar,رزگار عبدالرحمن عمر,Assistant Lecturer
+106,rizgar.usman@soran.edu.iq,SOU511,RIZGAR MOHAMMED OTHMAN,رزگار محمد عثمان,Assistant Professor
+358,roonak.golabiazer@soran.edu.iq,SOU302,Roonak Esmail Golabiazar,روناك اسمعیل گلابی آذر,Lecturer
+217,roshna.sabry@soran.edu.iq,SOU503,ROSHNA RASHID SABRI,رۆشنا رشید صبری,Assistant Lecturer
+462,rrq060h@bio.soran.edu.iq,SOU701,RAGHDA RAFIQ QADIR,رغدا رفيق قادر,Assistant Lecturer
+119,runak.usman@soran.edu.iq,SOU508,RONAK HAMEED OTHMAN,روناک حمید عثمان,Assistant Professor
+49,rwkhsar.maghdid@soran.edu.iq,SOU604,Rwkhsar Nabe Maghdid,روخسار نبی مغدید,Lecturer
+371,rzger.abdula@soran.edu.iq,SOU303,Rezgar Abdulkarim Abdulla,رزگار عبدالکریم عبداللە,Assistant Professor
+87,sabah.nuri@soran.edu.iq,SOU606,Sabah Nuri Mala,صباح نوری ملا احمد,Assistant Lecturer
+417,sabat.muhamad@soran.edu.iq,SOU305,Sabat Salih Muhamad,سابات صالح محمد,Assistant Lecturer
+275,sabir.abdulkhaliq@soran.edu.iq,SOU403,Sabir Abdulkhaliq Sadiq,صابر صادق عبدالخالق ایوب,Lecturer
+323,sabri.mala@soran.edu.iq,SOU401,Sabri Nuri Mala,صبری نوری ملا احمد,Assistant Lecturer
+93,sadadin.nury@soran.edu.iq,SOU606,Saadadeen Muhammad nuri,سعدالدین محمد نوری,Assistant Professor
+381,safia.piro@soran.edu.iq,SOU306,Safiya Jameel Piro,صافیە جمیل پیرۆ عارب,Assistant Lecturer
+200,sahand.mustafa@hist.soran.edu.krd,SOU510,Sahand Abdulsattar mustafa,سهند عبدالستار مصطفی,Assistant Lecturer
+443,sahand.mustafa@soran.edu.iq,SOU510,Sahand Abdulsattar Mustafa,سهند عبدالستار مصطفی,Assistant Lecturer
+176,Saied.faqeibrahim@soran.edu.iq,SOU509,SAIED QADIR FAQE IBRAHIM,سعید قادر فقی ابراهیم,Lecturer
+218,salah.jabrael@soran.edu.iq,SOU503,Salah Jameel Jabrael,صلاح جمیل جبرائیل حیدر,Lecturer
+194,salahadin.husain@soran.edu.iq,SOU510,SALAHDDIN BAQI HUSEEIN,صلاح الدین باقی حسین محمود,Lecturer
+336,salar.ismael@soran.edu.iq,SOU402,Salar Sewar Ismael,سالار سوار اسماعیل مجید,Lecturer
+203,saman.alee@soran.edu.iq,SOU510,Saman Othman,سامان عثمان عالی,Assistant Lecturer
+142,Saman.Hamad@soran.edu.iq,SOU502,Saman Nader Hamad,سامان نادر حمد,Lecturer
+279,saman.othman@soran.edu.iq,SOU403,Saman Hassan Othman,سامان حسن غثمان,Assistant Lecturer
+141,saman.smail@soran.edu.iq,SOU502,Saman Ibrahim Smail,ی.سامان ابراهیم سمایل احمد,Lecturer
+406,sami.mirza@soran.edu.iq,SOU305,SAMI FARMAN MIRZA,سامی فرمان میرزا,Assistant Lecturer
+403,sami.rashid@soran.edu.iq,SOU301,Sami Musa Rashid,سامی موسی رشید,Assistant Lecturer
+63,samiaa.abdulwahid@soran.edu.iq,SOU601,SAMIAA JAMIL ABDULWAHID,سامعە جمیل عبدالواحد ابراهیم,Assistant Professor
+431,samir.hamad@soran.edu.iq,SOU701,SAMIR MUSTAFA HAMAD,سمیر مصطفی حمد,Professor
+398,samir.ostamuhammad@soran.edu.iq,SOU301,Samir A Osta Muhammad,سمیر احمد اوستە محمد,Lecturer
+320,sanar.ali@soran.edu.iq,SOU401,SANAR SHAREEF ALI,سنار شریف علی,Assistant Lecturer
+308,sanh.qadir@soran.edu.iq,SOU401,Sanh Shareef Qder,صانع شریف قادر ملا,Lecturer
+414,sarbast.abdullah@cs.soran.edu.krd,SOU305,Sarbast Saleh Abdullah,سربست صالح عبداللە,Assistant Lecturer
+404,Sarbast.bradosty@soran.edu.iq,SOU301,Sarbast Ahmad Mahmud,سربست احمد محمود,Assistant Professor
+456,sarbast.hussein@soran.edu.iq,SOU701,SARBAST MAMND HUSSEIN,سربست مامند حسین,No Title
+341,sarbast.mikael@soran.edu.iq,SOU304,SARBAST HUSSEIN MIKAEEL,سربست حسین میكائیل,Lecturer
+50,sarbaz.omer@soran.edu.iq,SOU604,sarbaz majeed omer,سرباز مجید عمر مصطفی,Lecturer
+372,sardar.balaky@soran.edu.iq,SOU303,Sardar Mhyadin Hamadamin,سردار محی الدین حمدامین,Professor
+286,sardar.othman@soran.edu.iq,SOU403,SARDAR SABRI OTHMAN,سردار صبری عثمان عبداللە,Lecturer
+420,Sarhad.hasan@soran.edu.iq,SOU305,Sarhad Baez Hasan,سەرهەد بایز حسن نبی,Assistant Lecturer
+110,sarhang.hamad@soran.edu.iq,SOU511,Sarhang Razzaq Hamad,سرهنك رزاق حمد خضر,Lecturer
+421,sarhang.ibrahim@soran.edu.iq,SOU305,Sarhang Jamal Ibrahim,سەرهەنگ جمال ابراهیم,Assistant Lecturer
+231,Sarkar.hama@pete.soran.edu.iq,SOU200,Sarkar Muheedin Hama,سەرکار محی الدین حمە,Assistant Lecturer
+430,sarkawt.hamad@soran.edu.iq,SOU305,Sarkawt Hamadameen Hamad Hamadameen,سەرکەوت حمدامین حمد,Lecturer
+220,sarwan.hasan@soran.edu.iq,SOU503,SARWAN SEDEEQ HASAN,سەروان صدیق حسن,Assistant Lecturer
+384,sarwin.saber@soran.edu.iq,SOU301,SARWIN YABA SABER,سەروین یابە صابر,Assistant Lecturer
+201,sediq.mohammed@soran.edu.iq,SOU510,Sediq Mohammed Sediq,صدیق محمد صدیق,Assistant Lecturer
+448,sediq.mohammed@soran.edu.iq,SOU510,sediq mohammed sediq,صدیق محمد صدیق,Assistant Lecturer
+255,shahab.abduiia@soran.edu.iq,SOU204,Shahab Ahmadiazar,شهاب احمدی آذر,Assistant Lecturer
+83,shahab.saleh@soran.edu.iq,SOU602,SHAHAB MOHAMMAD SALEH HASSAN,شهاب محمدصالح حسن,Assistant Lecturer
+474,shahban.husein@soran.edu.iq,SOU608,Shaban Khudhur Hussein,شعبان خضر حسین,Assistant Lecturer
+334,shahla.abdula@soran.edu.iq,SOU402,SHEHLA SALIH ABDULLA,شهلە صالح عبداللە محمود,Assistant Lecturer
+309,shahla.aziz@soran.edu.iq,SOU401,SHAHLA MOHAMMAD AZEEZ,شهلا محمد عزیز,Lecturer
+311,shaima.mohammad@soran.edu.iq,SOU401,SHAYMA ZAKI MOHAMMAD,شیماء زكی محمد سعید,Assistant Professor
+195,shakhawan.sabr@soran.edu.iq,SOU510,SHAKHAWAN ABDULLAH SABIR,شاخەوان عبداللە صابر عثمان,Assistant Professor
+2,shamal.abdullah@soran.edu.iq,SOU503,Shamal Abdullah Abdullah,شمال عبداللە عبداللە,Assistant Lecturer
+14,shamal.ahmed@soran.edu.iq,SOU603,SHAMAL SALAHADDIN AHMED,شەمال صلاح‏ الدین احمد مصطفی,Assistant Professor
+316,shamal.fattah@soran.edu.iq,SOU401,SHAMAL FATTAH HAMAD,شمال فتاح حمد حمدامین,Lecturer
+23,shamal.hamad@soran.edu.iq,SOU603,SHIMAL HAMZA HAMAD,شمال همزە حمد,Assistant Professor
+310,shamsalden.salh@soran.edu.iq,SOU401,SHAMSADDIN AZIZ SALH, شمس الدین عزیز صالح محمود,Assistant Professor
+302,sharee.marouf@soran.edu.iq,SOU401,SHAREE XALID MAHROOF,شاری خالد معروف,Assistant Professor
+222,shawan.haji@ene.soran.edu.iq,SOU503,SHAWAN SAEED HAJI,شەوان سعید حاجی,Assistant Lecturer
+342,sheelan.osman@soran.edu.iq,SOU304,SHEELAN ABDULKADER OSMAN,شیلان عبدالقادر عثمان,Lecturer
+235,sherwan.qurtas@soran.edu.iq,SOU201,Sherwan Sharif Qurtas,شیروان شریف قرطاس,Assistant Professor
+107,sherwan.shink@soran.edu.iq,SOU511,SHERWAN HUSEEIN SHINK,شیروان حسین شینك,Lecturer
+51,sherzad.sedeeq@soran.edu.iq,SOU604,SHERZAD SAEED SEDEEQ,شیرزاد سعید صدیق احمد,Assistant Professor
+257,shireen.al-majmaie@soran.edu.iq,SOU204,Shireen Mansour Awad Al- Majmaie,شیرین منصور عواد,Assistant Lecturer
+160,shna.ahmad@soran.edu.iq,SOU501,SHINA ABUBAKIR AHMED,شنە ابوبكر احمد رحیم,Lecturer
+335,shoker.abobeker@soran.edu.iq,SOU402,Shoker Abobeker Aziz,شکر ابوبکر عزیز پیرۆ,Lecturer
+405,shorish.gorony@soran.edu.iq,SOU301,Shorish Mustafa Abdullah,شورش مصطفی عبداللە,Lecturer
+465,shuaala.omar@soran.edu.iq,SOU701,SHUAALA ABDULLAH OMAR,شوعلە عبداللە عمر,No Title
+41,shukri.mohamad@soran.edu.iq,SOU604,Shukri Ahmad Mohamad,شکری احمد محمد,Assistant Lecturer
+236,shwan.abdulla@soran.edu.iq,SOU201,Shwan Jalal Abdullah,شوان جلال عبداللە عزیز,Assistant Lecturer
+108,shwan.ali@soran.edu.iq,SOU511,SHWAN AHMED ALI,شوان احمد علی عزیز,Lecturer
+475,shwan.bapir@soran.edu.iq,SOU510,Shwan Ahmed Bapir,شوان ئەحمەد باپیر,Assistant Lecturer
+299,sidqi.amin@soran.edu.iq,SOU401,SDQI MOHEMMED AMEEN, صدقی محمدامین عیسی ابراهیم,Assistant Professor
+196,sihad.omar@soran.edu.iq,SOU510,SIHAD ASHAD OMARE,سیهاد اسعد اومر داود,Lecturer
+52,sirwan.ahmed@soran.edu.iq,SOU604,Sirwan Abdullah Ahmed,سیروان عبداللە احمد عبداللە,Lecturer
+159,sirwan.amin@soran.edu.iq,SOU501,SERWAN JABBAR AMEN,سیروان جبار امین محمد,Professor
+422,sirwan.aula@soran.edu.iq,SOU305,Sirwan Abdolwahed Aula,سیروان عبدالواحد عولا,Assistant Lecturer
+321,sirwan.tamar@soran.edu.iq,SOU401,SIRWAN MAJEED TAMR,سیروان مجید تمر یزدین,Assistant Lecturer
+464,solaf.rahman@soran.edu.iq,SOU701,SOLAF HAMADSHAREF RAHMAN,سۆلاف حمدشریف رحمن,No Title
+161,Srwa.Aziz@soran.edu.iq,SOU501,SRWA FAISAL AZIZ,سروە فیصل عزیز مصطفی,Lecturer
+423,srwa.mustafa@soran.edu.iq,SOU305,Srwa Hussein Mustafa,سروە حسین مصطفی نبی,Lecturer
+197,star.hasan@soran.edu.iq,SOU510,STAR SHEKH HASAN,ستار شیخ حسن احمد,Lecturer
+223,Syako.shekho@soran.edu.iq,SOU503,SYAKO SULAIMAN SHEKHO,سیاکو سلیمان شیخو,Lecturer
+36,taha.ahmed@soran.edu.iq,SOU603,Taha Aziz Ahmed,طە عزیز احمد,Assistant Lecturer
+312,taha.rasul@soran.edu.iq,SOU401,Taha Hassan Rasul,طە حسن رسول حسن,Assistant Lecturer
+81,Taher.mohemmed@soran.edu.iq,SOU602,TAHER SHEIKH MOHEMMED,طاهر شیخ محمد,Assistant Lecturer
+313,tahsen.smail@soran.edu.iq,SOU401,TAHSEEN HAMAD SMILE,تحسین حمد سمایل ابابكر,Assistant Professor
+344,Tahsin.rasul@soran.edu.iq,SOU304,TAHSIN IBRAHIM RASUL,تحسین ابراهیم رسول,Assistant Lecturer
+24,talha.omar1@soran.edu.iq,SOU603,TALHA KHANAFDL OMAR,طلحە خان اڤدل عمر,Lecturer
+485,talib.sulaiman@soran.edu.iq,SOU401,TALIB BRAIM SULAIMAN,طالب برایم سلیمان,Professor
+314,talib.suliman@soran.edu.iq,SOU401,TALB BRAIM SULIMAN,طالب برایم سلیمان حمد,Professor
+359,vian.esmaeil@soran.edu.iq,SOU302,Vian Sdiq Ismail,ڤیان صدیق اسماعیل,Lecturer
+360,vinos.faris@soran.edu.iq,SOU302,Vinos Mushir Faris,ڤینۆس مشیر فارس,Assistant Lecturer
+383,wazira.saeed@soran.edu.iq,SOU301,Wazira Qarani Saeed,وەزیرە قرنی سعید,Assistant Lecturer
+80,wlat.hamad@soran.edu.iq,SOU602,Wlat Jalal Hamad,وولات جلال احمد,Assistant Lecturer
+317,xosro.aziz@soran.edu.iq,SOU401,Khasro Azeez Azeez,خسرو عزیز عزیز محمد,Assistant Lecturer
+224,yadgar.said@soran.edu.iq,SOU503,YADGAR ISMAIL SAID,یادگار اسماعیل سعید رحمان,Assistant Lecturer
+278,yashar.muhammed@soran.edu.iq,SOU403,YASHAR FADHIL MOHAMMED,یشار فاضل محمد,Assistant Lecturer
+177,yasin.mamand@soran.edu.iq,SOU509,YASIN HUSSEEN MAMAND,یاسین حسین مامند,Lecturer
+262,yosif.mohammad@soran.edu.iq,SOU404,YOUSIF AMEEN MOHAMMAD,یوسف امین محمد محمود,Assistant Lecturer
+237,yousif.bas@soran.edu.iq,SOU201,Yousif Jameel Bas,یوسف جمیل باس سلیم,Assistant Lecturer
+447,zagros.omar@soran.edu.iq,SOU302,Zagros Abdulrahman Omar,زاگروس عبدالرحمن عمر,Assistant Lecturer
+34,zana.ameen@soran.edu.iq,SOU603,ZANA HAMAD AMEEN MOHAMMED,زانا حمدامین محمد,Assistant Lecturer
+274,Zana.Assad@soran.edu.iq,SOU404,Zana Ghazi Asaad,زانا غازی اسعد عزیز,Assistant Lecturer
+120,zana.babakr@soran.edu.iq,SOU508,ZANA HASAN BABAKR,زانا حسن بابكر,Lecturer
+259,zardasht.qader@soran.edu.iq,SOU404,Zardasht Abubaker Qader,زەردەشت ابوبکر قادر,Lecturer
+69,zaytoon.khidr@soran.edu.iq,SOU601,Zaytoon Hussein Kheder,زیتون حسین خدر احمد,Assistant Lecturer
+407,zheyan.younis@soran.edu.iq,SOU301,Zheyan Tahir Younis,ژیان طاهر یونس,Assistant Lecturer
+461,zhila.sadeq@soran.edu.iq,SOU701,ZHILA HASHIM SADEQ,ژیلا هاشم صادق,No Title
+74,zina.ismail@soran.edu.iq,SOU605,ZINA ADIL ISMAIL CHAQMACHEE,زینە عادل اسماعیل,Lecturer
+165,zohria.Ismail@soran.edu.iq,SOU501,Zohria Jindo Ismail,زهریە جندۆ اسماعیل جندۆ,Assistant Lecturer
+271,zozik.rasool@soran.edu.iq,SOU404,Zozik Sabah Rasool,زۆزك صباح رسول,Assistant Lecturer
+296,majida.mala@law.soran.edu.iq,SOU401,MAJIDA ALI MALA SADQ,ماجدە علی ملاصادق شیخ محمد,Assistant Lecturer
+`;
+
+        let staffData = [];
+        
+        // 2. Data Parsing Function
+        function parseCSV(csv) {
+            const lines = csv.split('\n').filter(line => line.trim() !== '');
+            if (lines.length === 0) return [];
+
+            const headers = lines[0].split(',');
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                // Simple split by comma for robustness; assumes no escaped commas
+                const values = lines[i].split(','); 
+                if (values.length === headers.length) {
+                    let obj = {};
+                    for (let j = 0; j < headers.length; j++) {
+                        // Trim whitespace and assign value
+                        obj[headers[j].trim()] = values[j].trim().replace(/"/g, ''); 
+                    }
+                    data.push(obj);
+                }
+            }
+            return data;
+        }
+
+        // 3. Table Rendering Function
+        function renderTable(data) {
+            const container = document.getElementById('data-container');
+            const countDisplay = document.getElementById('results-count');
+            
+            if (data.length === 0) {
+                container.innerHTML = '<p>No staff members match your search criteria.</p>';
+                countDisplay.textContent = 'Found 0 results.';
+                return;
+            }
+
+            const headers = ['ID', 'Email', 'Dep_Code', 'Full_Name_Eng', 'Full_Name_Krd', 'Scientific_Title'];
+            
+            let tableHTML = '<table>';
+            
+            // Table Header
+            tableHTML += '<thead><tr>';
+            headers.forEach(header => {
+                // Use a more readable name for the English full name
+                const displayHeader = (header === 'Full_Name_Eng') ? 'Full Name (Eng)' :
+                                      (header === 'Full_Name_Krd') ? 'Full Name (Krd)' :
+                                      (header === 'Dep_Code') ? 'Dept Code' :
+                                      (header === 'Scientific_Title') ? 'Title' : header;
+                tableHTML += `<th>${displayHeader}</th>`;
+            });
+            tableHTML += '</tr></thead>';
+
+            // Table Body
+            tableHTML += '<tbody>';
+            data.forEach(staff => {
+                tableHTML += '<tr>';
+                headers.forEach(header => {
+                    // Display the value for each column
+                    tableHTML += `<td>${staff[header]}</td>`;
+                });
+                tableHTML += '</tr>';
+            });
+            tableHTML += '</tbody></table>';
+
+            container.innerHTML = tableHTML;
+            countDisplay.textContent = `Found ${data.length} results.`;
+        }
+
+        // 4. Main Search/Filter Function
+        function searchStaff() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                // If the search box is empty, show all data
+                renderTable(staffData);
+                return;
+            }
+
+            const filteredData = staffData.filter(staff => {
+                // Search across all relevant fields (case-insensitive)
+                const searchFields = [
+                    staff.Full_Name_Eng,
+                    staff.Full_Name_Krd,
+                    staff.Email,
+                    staff.Dep_Code,
+                    staff.Scientific_Title
+                ].map(field => field.toLowerCase());
+
+                // Check if the search term is found in any of the fields
+                return searchFields.some(field => field.includes(searchTerm));
+            });
+
+            renderTable(filteredData);
+        }
+
+        // 5. Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            // Parse the embedded CSV data on load
+            staffData = parseCSV(csvData); 
+            // Display all data initially
+            searchStaff(); 
+        });
+
+    </script>
+</body>
+</html>
